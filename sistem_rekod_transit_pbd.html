@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Rekod Transit PBD</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            tp1: '#ef4444',
+            tp2: '#f97316',
+            tp3: '#eab308',
+            tp4: '#3b82f6',
+            tp5: '#a855f7',
+            tp6: '#10b981',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React & ReactDOM CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel Standalone CDN -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 40%, #e0f2fe 100%);
+      background-attachment: fixed;
+      min-height: 100vh;
+      color: #1e293b;
+    }
+
+    /* Glassmorphism Classes */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.07);
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .glass-input {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(203, 213, 225, 0.8);
+    }
+    .glass-input:focus {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: #6366f1;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(241, 245, 249, 0.5);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.5);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.8);
+    }
+
+    /* Print Optimization CSS */
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .glass-panel, .glass-card {
+        background: white !important;
+        backdrop-filter: none !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+      }
+      .print-container {
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      textarea {
+        border: none !important;
+        resize: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+      }
+      .page-break {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body class="p-2 sm:p-4 md:p-6 min-h-screen">
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+
+    // --- DEFAULT INITIAL DATA ---
+    const DEFAULT_SUBJECT = "SAINS";
+    const DEFAULT_CLASS = "Tingkatan 4";
+
+    const DEFAULT_TOPICS = [
+      { id: 't1', code: 'Bab 1', name: 'Langkah Keselamatan dalam Makmal' },
+      { id: 't2', code: 'Bab 2', name: 'Bantuan Kecemasan' },
+      { id: 't3', code: 'Bab 3', name: 'Teknik Mengukur Parameter Kesihatan Badan' },
+      { id: 't4', code: 'Bab 4', name: 'Teknologi Hijau dalam Melestarikan Alam' },
+      { id: 't5', code: 'Bab 5', name: 'Genetik' },
+      { id: 't6', code: 'Bab 6', name: 'Sokongan, Pergerakan dan Pertumbuhan' },
+      { id: 't7', code: 'Bab 7', name: 'Koordinasi Badan' },
+      { id: 't8', code: 'Bab 8', name: 'Unsur dan Bahan' },
+      { id: 't9', code: 'Bab 9', name: 'Kimia Industri' },
+      { id: 't10', code: 'Bab 10', name: 'Kimia dalam Perubatan dan Kesihatan' },
+      { id: 't11', code: 'Bab 11', name: 'Daya dan Gerakan' },
+      { id: 't12', code: 'Bab 12', name: 'Tenaga Nuklear' }
+    ];
+
+    const DEFAULT_STUDENTS = [
+      {
+        id: 'std_1',
+        name: 'CHRIST PUTRA ELVINE A/L HANAFFIE',
+        ic: '080312-08-5431',
+        scores: {
+          t1: 88, t2: 92, t3: 85, t4: 90, t5: 95, t6: 82,
+          t7: 91, t8: 89, t9: 94, t10: 87, t11: 93, t12: 96
+        }
+      },
+      {
+        id: 'std_2',
+        name: 'ALVIRA A/P SANWIN',
+        ic: '080924-02-6120',
+        scores: {
+          t1: 35, t2: 28, t3: 38, t4: 15, t5: 32, t6: 25,
+          t7: 30, t8: 22, t9: 39, t10: 18, t11: 29, t12: 34
+        }
+      }
+    ];
+
+    // Default Malaysian School Crest SVG
+    const DEFAULT_LOGO_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" fill="none"><path d="M50 5 L90 20 V65 C90 90 50 115 50 115 C50 115 10 90 10 65 V20 L50 5 Z" fill="%231e3a8a" stroke="%23f59e0b" stroke-width="4"/><path d="M50 15 L82 27 V63 C82 83 50 103 50 103 C50 103 18 83 18 63 V27 L50 15 Z" fill="%23dc2626"/><circle cx="50" cy="45" r="16" fill="%23fef08a"/><path d="M50 35 L53 43 L62 43 L55 48 L57 57 L50 52 L43 57 L45 48 L38 43 L47 43 Z" fill="%231e3a8a"/><path d="M30 75 Q50 68 70 75 V85 Q50 78 30 85 Z" fill="%23ffffff"/><text x="50" y="82" font-size="7" font-weight="bold" text-anchor="middle" fill="%231e3a8a">BERILMU</text></svg>`;
+
+    // --- HELPER FUNCTIONS ---
+    // Determine Tahap Penguasaan (TP) based on percentage mark
+    const getTP = (mark) => {
+      if (mark === null || mark === undefined || mark === '') return null;
+      const num = Number(mark);
+      if (isNaN(num)) return null;
+      if (num >= 90) return 6;
+      if (num >= 75) return 5;
+      if (num >= 60) return 4;
+      if (num >= 40) return 3;
+      if (num >= 20) return 2;
+      if (num >= 0) return 1;
+      return null;
+    };
+
+    // Get color theme meta for TP level
+    const getTPBadge = (tp) => {
+      switch (tp) {
+        case 1:
+          return { bg: 'bg-red-500', text: 'text-white', border: 'border-red-600', label: 'TP1', desc: 'Sangat Terhad' };
+        case 2:
+          return { bg: 'bg-orange-500', text: 'text-white', border: 'border-orange-600', label: 'TP2', desc: 'Terhad' };
+        case 3:
+          return { bg: 'bg-amber-400', text: 'text-slate-900', border: 'border-amber-500', label: 'TP3', desc: 'Memuaskan' };
+        case 4:
+          return { bg: 'bg-blue-500', text: 'text-white', border: 'border-blue-600', label: 'TP4', desc: 'Baik' };
+        case 5:
+          return { bg: 'bg-purple-600', text: 'text-white', border: 'border-purple-700', label: 'TP5', desc: 'Sangat Baik' };
+        case 6:
+          return { bg: 'bg-emerald-600', text: 'text-white', border: 'border-emerald-700', label: 'TP6', desc: 'Cemerlang' };
+        default:
+          return { bg: 'bg-slate-300', text: 'text-slate-600', border: 'border-slate-400', label: '-', desc: 'Tiada Data' };
+      }
+    };
+
+    // Auto-generate suggested intervention / teacher comments based on average TP
+    const getDefaultComment = (avgTp, studentName) => {
+      const name = studentName ? studentName.trim() : "Pelajar";
+      switch (avgTp) {
+        case 1:
+          return `${name} belum menguasai tahap minimum DSKP. Memerlukan bimbingan rapi secara individu, latihan pemulihan asas, dan sokongan berterusan daripada guru serta ibu bapa.`;
+        case 2:
+          return `${name} menunjukkan kefahaman asas yang terhad. Perlu diberi galakan, bimbingan berpandu secara berkumpulan, dan latihan pengukuhan bagi topik-topik asas.`;
+        case 3:
+          return `${name} mencapai tahap penguasaan memuaskan. Disarankan membuat lebih banyak latihan pengukuhan dan bimbingan berkala untuk meningkatkan prestasi ke tahap seterusnya.`;
+        case 4:
+          return `${name} menunjukkan penguasaan yang baik dalam kebanyakan topik DSKP. Boleh dibimbing untuk menguasai soalan Kemahiran Berfikir Aras Tinggi (KBAT) dan aplikasi konsep.`;
+        case 5:
+          return `${name} mencatatkan prestasi sangat baik dan konsisten. Disyorkan sebagai Pembimbing Rakan Sebaya (PRS) dan diberi latihan pengayaan serta kemahiran KBAT lanjutan.`;
+        case 6:
+          return `${name} mencapai tahap cemerlang sepenuhnya. Mempunyai keupayaan memimpin, berfikir secara kreatif dan kritis, serta wajar diberikan cabaran pengayaan aras tinggi.`;
+        default:
+          return "Sila kemas kini markah transit untuk menjana ulasan guru secara automatik.";
+      }
+    };
+
+    // Calculate student overall average mark and overall TP
+    const calculateStudentStats = (student, topics) => {
+      if (!topics || topics.length === 0) return { avgScore: 0, overallTP: 0 };
+      let total = 0;
+      let count = 0;
+      topics.forEach(t => {
+        const score = student.scores ? student.scores[t.id] : null;
+        if (score !== undefined && score !== null && score !== '') {
+          total += Number(score);
+          count++;
+        }
+      });
+      if (count === 0) return { avgScore: 0, overallTP: 0 };
+      const avgScore = total / count;
+      return {
+        avgScore: Math.round(avgScore * 10) / 10,
+        overallTP: getTP(avgScore)
+      };
+    };
+
+
+    const Modal = ({ isOpen, onClose, title, children }) => {
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
+          <div className="glass-panel w-full max-w-md rounded-2xl p-6 shadow-2xl border border-white/80 bg-white/90">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+              <button 
+                onClick={onClose}
+                className="text-slate-400 hover:text-slate-600 text-xl font-bold px-2 py-1"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="py-4">
+              {children}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+
+    function App() {
+      // LocalStorage State Management
+      const [subject, setSubject] = React.useState(() => {
+        return localStorage.getItem('pbd_subject') || DEFAULT_SUBJECT;
+      });
+      const [className, setClassName] = React.useState(() => {
+        return localStorage.getItem('pbd_className') || DEFAULT_CLASS;
+      });
+      const [logoUrl, setLogoUrl] = React.useState(() => {
+        return localStorage.getItem('pbd_logoUrl') || DEFAULT_LOGO_SVG;
+      });
+      const [topics, setTopics] = React.useState(() => {
+        const saved = localStorage.getItem('pbd_topics');
+        return saved ? JSON.parse(saved) : DEFAULT_TOPICS;
+      });
+      const [students, setStudents] = React.useState(() => {
+        const saved = localStorage.getItem('pbd_students');
+        return saved ? JSON.parse(saved) : DEFAULT_STUDENTS;
+      });
+      const [comments, setComments] = React.useState(() => {
+        const saved = localStorage.getItem('pbd_comments');
+        return saved ? JSON.parse(saved) : {};
+      });
+
+      // UI Navigation & Active States
+      const [activeTab, setActiveTab] = React.useState('dashboard');
+      const [selectedStudentId, setSelectedStudentId] = React.useState(() => {
+        return students.length > 0 ? students[0].id : '';
+      });
+
+      // Custom Notification Modal state
+      const [modalInfo, setModalInfo] = React.useState({ isOpen: false, title: '', message: '' });
+      const showMessage = (title, message) => setModalInfo({ isOpen: true, title, message });
+
+      // Save to localStorage on changes
+      React.useEffect(() => {
+        localStorage.setItem('pbd_subject', subject);
+        localStorage.setItem('pbd_className', className);
+        localStorage.setItem('pbd_logoUrl', logoUrl);
+        localStorage.setItem('pbd_topics', JSON.stringify(topics));
+        localStorage.setItem('pbd_students', JSON.stringify(students));
+        localStorage.setItem('pbd_comments', JSON.stringify(comments));
+      }, [subject, className, logoUrl, topics, students, comments]);
+
+      // Ensure selectedStudentId is valid
+      React.useEffect(() => {
+        if (students.length > 0 && (!selectedStudentId || !students.find(s => s.id === selectedStudentId))) {
+          setSelectedStudentId(students[0].id);
+        }
+      }, [students]);
+
+
+      return (
+        <div className="max-w-7xl mx-auto space-y-6">
+          
+          {/* TOP HEADER */}
+          <header className="glass-panel rounded-2xl p-4 sm:p-6 shadow-xl no-print">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-1 bg-white/80 shadow-md flex items-center justify-center overflow-hidden border border-white">
+                  <img src={logoUrl} alt="Logo Sekolah" className="w-full h-full object-contain" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-700 border border-indigo-200">
+                      SISTEM REKOD TRANSIT PBD
+                    </span>
+                  </div>
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight mt-0.5">
+                    Pentaksiran Bilik Darjah
+                  </h1>
+                  <p className="text-xs sm:text-sm font-medium text-slate-600 flex items-center gap-2 mt-0.5">
+                    <span className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200">
+                      <i className="fa-solid fa-book-bookmark text-indigo-500 mr-1.5"></i>
+                      Subjek: <strong className="text-slate-800">{subject}</strong>
+                    </span>
+                    <span className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200">
+                      <i className="fa-solid fa-users text-indigo-500 mr-1.5"></i>
+                      Kelas: <strong className="text-slate-800">{className}</strong>
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {/* TABS NAVIGATION */}
+              <nav className="flex flex-wrap justify-center gap-1.5 sm:gap-2 p-1.5 bg-slate-200/50 rounded-xl border border-white/60 backdrop-blur-md w-full md:w-auto">
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                    activeTab === 'dashboard'
+                      ? 'bg-white text-indigo-700 shadow-md border border-white'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                  }`}
+                >
+                  <i className="fa-solid fa-chart-pie"></i>
+                  <span>Dashboard</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('transit')}
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                    activeTab === 'transit'
+                      ? 'bg-white text-indigo-700 shadow-md border border-white'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                  }`}
+                >
+                  <i className="fa-solid fa-table-list"></i>
+                  <span>Rekod Transit</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('report')}
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                    activeTab === 'report'
+                      ? 'bg-white text-indigo-700 shadow-md border border-white'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                  }`}
+                >
+                  <i className="fa-solid fa-file-invoice"></i>
+                  <span>Pelaporan Individu</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                    activeTab === 'settings'
+                      ? 'bg-white text-indigo-700 shadow-md border border-white'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                  }`}
+                >
+                  <i className="fa-solid fa-sliders"></i>
+                  <span>Tetapan</span>
+                </button>
+              </nav>
+            </div>
+          </header>
+
+          {/* DYNAMIC CONTENT AREA */}
+          <main>
+            {activeTab === 'dashboard' && (
+              <DashboardModule 
+                students={students} 
+                topics={topics} 
+                onSelectStudentForReport={(id) => {
+                  setSelectedStudentId(id);
+                  setActiveTab('report');
+                }} 
+              />
+            )}
+
+            {activeTab === 'transit' && (
+              <TransitModule 
+                students={students} 
+                setStudents={setStudents} 
+                topics={topics}
+                showMessage={showMessage} 
+              />
+            )}
+
+            {activeTab === 'report' && (
+              <ReportModule 
+                students={students} 
+                topics={topics} 
+                subject={subject} 
+                className={className} 
+                logoUrl={logoUrl}
+                selectedStudentId={selectedStudentId}
+                setSelectedStudentId={setSelectedStudentId}
+                comments={comments}
+                setComments={setComments}
+              />
+            )}
+
+            {activeTab === 'settings' && (
+              <SettingsModule 
+                subject={subject}
+                setSubject={setSubject}
+                className={className}
+                setClassName={setClassName}
+                logoUrl={logoUrl}
+                setLogoUrl={setLogoUrl}
+                topics={topics}
+                setTopics={setTopics}
+                students={students}
+                setStudents={setStudents}
+                comments={comments}
+                setComments={setComments}
+                showMessage={showMessage}
+              />
+            )}
+          </main>
+
+          {/* CUSTOM NOTIFICATION MODAL */}
+          <Modal 
+            isOpen={modalInfo.isOpen} 
+            onClose={() => setModalInfo({ ...modalInfo, isOpen: false })}
+            title={modalInfo.title}
+          >
+            <p className="text-sm text-slate-600 mb-4">{modalInfo.message}</p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setModalInfo({ ...modalInfo, isOpen: false })}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 transition"
+              >
+                Faham
+              </button>
+            </div>
+          </Modal>
+
+        </div>
+      );
+    }
+
+
+    function DashboardModule({ students, topics, onSelectStudentForReport }) {
+      const chartRef = React.useRef(null);
+      const chartInstanceRef = React.useRef(null);
+
+      // Compute statistics
+      const stats = React.useMemo(() => {
+        let totalScoreSum = 0;
+        let studentCount = students.length;
+        let tpCounts = [0, 0, 0, 0, 0, 0]; // TP1 to TP6
+        const interventionList = [];
+        const excellenceList = [];
+
+        students.forEach((student) => {
+          const { avgScore, overallTP } = calculateStudentStats(student, topics);
+          totalScoreSum += avgScore;
+
+          if (overallTP >= 1 && overallTP <= 6) {
+            tpCounts[overallTP - 1]++;
+          }
+
+          if (overallTP === 1 || overallTP === 2) {
+            interventionList.push({ ...student, avgScore, overallTP });
+          } else if (overallTP === 5 || overallTP === 6) {
+            excellenceList.push({ ...student, avgScore, overallTP });
+          }
+        });
+
+        const classAvgScore = studentCount > 0 ? (totalScoreSum / studentCount).toFixed(1) : 0;
+        const classAvgTP = getTP(classAvgScore);
+
+        return {
+          totalStudents: studentCount,
+          classAvgScore,
+          classAvgTP,
+          tpCounts,
+          interventionList,
+          excellenceList
+        };
+      }, [students, topics]);
+
+      // Initialize / Update Chart.js
+      React.useEffect(() => {
+        if (!chartRef.current) return;
+        const ctx = chartRef.current.getContext('2d');
+
+        if (chartInstanceRef.current) {
+          chartInstanceRef.current.destroy();
+        }
+
+        chartInstanceRef.current = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['TP1 (0-19)', 'TP2 (20-39)', 'TP3 (40-59)', 'TP4 (60-74)', 'TP5 (75-89)', 'TP6 (90-100)'],
+            datasets: [{
+              label: 'Bilangan Pelajar',
+              data: stats.tpCounts,
+              backgroundColor: [
+                'rgba(239, 68, 68, 0.85)',
+                'rgba(249, 115, 22, 0.85)',
+                'rgba(234, 179, 8, 0.85)',
+                'rgba(59, 130, 246, 0.85)',
+                'rgba(168, 85, 247, 0.85)',
+                'rgba(16, 185, 129, 0.85)'
+              ],
+              borderColor: [
+                '#dc2626', '#ea580c', '#ca8a04', '#2563eb', '#7e22ce', '#059669'
+              ],
+              borderWidth: 1.5,
+              borderRadius: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => ` Bilangan Pelajar: ${context.parsed.y} orang`
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1, precision: 0 },
+                grid: { color: 'rgba(203, 213, 225, 0.4)' }
+              },
+              x: {
+                grid: { display: false }
+              }
+            }
+          }
+        });
+
+        return () => {
+          if (chartInstanceRef.current) {
+            chartInstanceRef.current.destroy();
+          }
+        };
+      }, [stats.tpCounts]);
+
+      const avgTpBadge = getTPBadge(stats.classAvgTP);
+
+      return (
+        <div className="space-y-6">
+          
+          {/* 3 SUMMARY CARDS */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            
+            {/* CARD 1 */}
+            <div className="glass-panel rounded-2xl p-5 flex items-center space-x-4 border border-white/80 shadow-lg">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center text-2xl border border-indigo-200 shrink-0">
+                <i className="fa-solid fa-users"></i>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Jumlah Pelajar</p>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800">{stats.totalStudents} <span className="text-sm font-medium text-slate-500">orang</span></h2>
+              </div>
+            </div>
+
+            {/* CARD 2 */}
+            <div className="glass-panel rounded-2xl p-5 flex items-center space-x-4 border border-white/80 shadow-lg">
+              <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center text-2xl border border-blue-200 shrink-0">
+                <i className="fa-solid fa-chart-line"></i>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Purata Markah Kelas</p>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800">{stats.classAvgScore}%</h2>
+              </div>
+            </div>
+
+            {/* CARD 3 */}
+            <div className="glass-panel rounded-2xl p-5 flex items-center space-x-4 border border-white/80 shadow-lg">
+              <div className="w-14 h-14 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center text-2xl border border-purple-200 shrink-0">
+                <i className="fa-solid fa-award"></i>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Purata TP Kelas</p>
+                <div className="flex items-center space-x-2 mt-0.5">
+                  <span className={`px-3 py-0.5 rounded-full text-sm font-extrabold ${avgTpBadge.bg} ${avgTpBadge.text} shadow-sm`}>
+                    {avgTpBadge.label}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-600">({avgTpBadge.desc})</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* CARTA TABURAN TP */}
+          <div className="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl border border-white/80">
+            <h3 className="text-base font-bold text-slate-800 flex items-center space-x-2 mb-4">
+              <i className="fa-solid fa-chart-column text-indigo-600"></i>
+              <span>Taburan Tahap Penguasaan (TP1 - TP6)</span>
+            </h3>
+            <div className="h-64 sm:h-80 w-full">
+              <canvas ref={chartRef}></canvas>
+            </div>
+          </div>
+
+          {/* LISTS: INTERVENSI & EXCELLENCE */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* INTERVENTIONS CARD */}
+            <div className="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl border border-white/80 border-t-4 border-t-rose-500">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-slate-800 flex items-center space-x-2">
+                  <i className="fa-solid fa-triangle-exclamation text-rose-500"></i>
+                  <span>Pelajar Intervensi (TP1 & TP2)</span>
+                </h3>
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700">
+                  {stats.interventionList.length} Pelajar
+                </span>
+              </div>
+
+              {stats.interventionList.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 text-xs sm:text-sm bg-white/40 rounded-xl border border-dashed border-slate-300">
+                  <i className="fa-solid fa-circle-check text-emerald-500 text-2xl mb-2 block"></i>
+                  Tiada pelajar yang memerlukan intervensi kritikal (TP1-TP2).
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {stats.interventionList.map((st) => {
+                    const badge = getTPBadge(st.overallTP);
+                    return (
+                      <div key={st.id} className="glass-card rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-white/80 hover:shadow-md transition">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${badge.bg} ${badge.text}`}>
+                              {badge.label}
+                            </span>
+                            <span className="font-bold text-sm text-slate-800">{st.name}</span>
+                          </div>
+                          <p className="text-xs text-rose-600 mt-1 font-medium">
+                            <i className="fa-solid fa-circle-info mr-1"></i>
+                            Cadangan: Bimbingan rapi secara individu, latihan pemulihan modul asas DSKP.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => onSelectStudentForReport(st.id)}
+                          className="shrink-0 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold transition"
+                        >
+                          Lihat Laporan
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* EXCELLENCE CARD */}
+            <div className="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl border border-white/80 border-t-4 border-t-emerald-500">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-slate-800 flex items-center space-x-2">
+                  <i className="fa-solid fa-star text-amber-500"></i>
+                  <span>Pelajar Cemerlang (TP5 & TP6)</span>
+                </h3>
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                  {stats.excellenceList.length} Pelajar
+                </span>
+              </div>
+
+              {stats.excellenceList.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 text-xs sm:text-sm bg-white/40 rounded-xl border border-dashed border-slate-300">
+                  Tiada pelajar berada di Tahap Penguasaan TP5-TP6 setakat ini.
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {stats.excellenceList.map((st) => {
+                    const badge = getTPBadge(st.overallTP);
+                    return (
+                      <div key={st.id} className="glass-card rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-white/80 hover:shadow-md transition">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${badge.bg} ${badge.text}`}>
+                              {badge.label}
+                            </span>
+                            <span className="font-bold text-sm text-slate-800">{st.name}</span>
+                          </div>
+                          <p className="text-xs text-emerald-700 mt-1 font-medium">
+                            <i className="fa-solid fa-award mr-1"></i>
+                            Cadangan: Dilantik Pembimbing Rakan Sebaya (PRS) & modul KBAT pengayaan.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => onSelectStudentForReport(st.id)}
+                          className="shrink-0 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold transition"
+                        >
+                          Lihat Laporan
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+          </div>
+
+        </div>
+      );
+    }
+
+
+    function TransitModule({ students, setStudents, topics, showMessage }) {
+      const [searchTerm, setSearchTerm] = React.useState('');
+      const [isAddingStudent, setIsAddingStudent] = React.useState(false);
+      const [newStudentName, setNewStudentName] = React.useState('');
+      const [newStudentIc, setNewStudentIc] = React.useState('');
+
+      // Update score handler
+      const handleScoreChange = (studentId, topicId, val) => {
+        let numVal = val === '' ? '' : Math.min(100, Math.max(0, Number(val)));
+        if (val !== '' && isNaN(numVal)) return;
+
+        setStudents(prev => prev.map(s => {
+          if (s.id === studentId) {
+            return {
+              ...s,
+              scores: {
+                ...s.scores,
+                [topicId]: numVal
+              }
+            };
+          }
+          return s;
+        }));
+      };
+
+      // Add Student
+      const handleAddStudent = (e) => {
+        e.preventDefault();
+        if (!newStudentName.trim()) {
+          showMessage("Ralat", "Sila masukkan nama pelajar.");
+          return;
+        }
+
+        const newStudent = {
+          id: 'std_' + Date.now(),
+          name: newStudentName.trim().toUpperCase(),
+          ic: newStudentIc.trim() || '-',
+          scores: {}
+        };
+
+        setStudents(prev => [...prev, newStudent]);
+        setNewStudentName('');
+        setNewStudentIc('');
+        setIsAddingStudent(false);
+      };
+
+      // Delete Student
+      const handleDeleteStudent = (id, name) => {
+        if (confirm(`Adakah anda pasti untuk memadam rekod pelajar ${name}?`)) {
+          setStudents(prev => prev.filter(s => s.id !== id));
+        }
+      };
+
+      // Filtered students
+      const filteredStudents = students.filter(s => 
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.ic.includes(searchTerm)
+      );
+
+      return (
+        <div className="glass-panel rounded-2xl p-4 sm:p-6 shadow-xl border border-white/80 space-y-4">
+          
+          {/* BAR ATAS: Carian & Tambah Pelajar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-2 border-b border-slate-200/60">
+            <div className="relative flex-1 max-w-md">
+              <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input
+                type="text"
+                placeholder="Cari nama atau No. MyKad pelajar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 rounded-xl text-xs sm:text-sm glass-input"
+              />
+            </div>
+
+            <button
+              onClick={() => setIsAddingStudent(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md flex items-center justify-center space-x-2 transition"
+            >
+              <i className="fa-solid fa-user-plus"></i>
+              <span>Tambah Pelajar</span>
+            </button>
+          </div>
+
+          {/* JADUAL REKOD TRANSIT (HORIZONTALLY SCROLLABLE) */}
+          <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white/60 shadow-inner">
+            <table className="w-full text-left border-collapse min-w-[1000px]">
+              <thead>
+                <tr className="bg-slate-100/90 text-slate-700 text-xs font-bold border-b border-slate-200">
+                  <th className="p-3 sticky left-0 bg-slate-100 z-10 w-12 text-center">No</th>
+                  <th className="p-3 sticky left-12 bg-slate-100 z-10 w-64 border-r border-slate-200">Nama Pelajar / MyKad</th>
+                  {topics.map((t, idx) => (
+                    <th key={t.id} className="p-2 text-center min-w-[100px] border-r border-slate-200/60">
+                      <div className="text-[11px] text-indigo-700">{t.code}</div>
+                      <div className="text-[10px] font-normal text-slate-500 truncate max-w-[90px]" title={t.name}>
+                        {t.name}
+                      </div>
+                    </th>
+                  ))}
+                  <th className="p-3 text-center w-24 bg-indigo-50/80 text-indigo-900 border-l border-indigo-200">Purata %</th>
+                  <th className="p-3 text-center w-20 bg-indigo-50/80 text-indigo-900">TP Kelas</th>
+                  <th className="p-3 text-center w-12">Tindakan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200/60 text-xs">
+                {filteredStudents.length === 0 ? (
+                  <tr>
+                    <td colSpan={topics.length + 5} className="p-8 text-center text-slate-500">
+                      Tiada rekod pelajar dijumpai. Klik "Tambah Pelajar" untuk memulakan.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredStudents.map((st, index) => {
+                    const { avgScore, overallTP } = calculateStudentStats(st, topics);
+                    const overallBadge = getTPBadge(overallTP);
+
+                    return (
+                      <tr key={st.id} className="hover:bg-white/80 transition">
+                        <td className="p-2.5 sticky left-0 bg-white/90 z-10 text-center font-medium text-slate-500">
+                          {index + 1}
+                        </td>
+                        <td className="p-2.5 sticky left-12 bg-white/90 z-10 border-r border-slate-200">
+                          <div className="font-bold text-slate-800 text-xs uppercase">{st.name}</div>
+                          <div className="text-[10px] text-slate-500">{st.ic || '-'}</div>
+                        </td>
+
+                        {/* INPUT MARAKAH & LENCANA TP BAGI SETIAP TOPIK */}
+                        {topics.map((t) => {
+                          const val = st.scores ? (st.scores[t.id] ?? '') : '';
+                          const tp = getTP(val);
+                          const tpBadge = getTPBadge(tp);
+
+                          return (
+                            <td key={t.id} className="p-1.5 text-center border-r border-slate-100">
+                              <div className="flex flex-col items-center gap-1">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={val}
+                                  onChange={(e) => handleScoreChange(st.id, t.id, e.target.value)}
+                                  placeholder="0-100"
+                                  className="w-16 px-1 py-1 text-center font-bold text-xs rounded border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 bg-white/90 shadow-sm"
+                                />
+                                {val !== '' && (
+                                  <span className={`px-1.5 py-0.2 rounded text-[10px] font-extrabold ${tpBadge.bg} ${tpBadge.text} shadow-2xs`}>
+                                    {tpBadge.label}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
+
+                        {/* PURATA MARKAH & TP KESELURUHAN */}
+                        <td className="p-2 text-center font-bold text-slate-800 bg-indigo-50/30 border-l border-indigo-100">
+                          {avgScore}%
+                        </td>
+                        <td className="p-2 text-center bg-indigo-50/30">
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${overallBadge.bg} ${overallBadge.text}`}>
+                            {overallBadge.label}
+                          </span>
+                        </td>
+
+                        {/* PADAM PELAJAR */}
+                        <td className="p-2 text-center">
+                          <button
+                            onClick={() => handleDeleteStudent(st.id, st.name)}
+                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
+                            title="Padam Pelajar"
+                          >
+                            <i className="fa-solid fa-trash-can"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* MODAL TAMBAH PELAJAR */}
+          {isAddingStudent && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+              <div className="glass-panel w-full max-w-md rounded-2xl p-6 shadow-2xl border border-white/80 bg-white/95">
+                <h3 className="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+                  Tambah Pelajar Baharu
+                </h3>
+                <form onSubmit={handleAddStudent} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Nama Penuh Pelajar *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="CONTOH: AHMAD BIN ABDULLAH"
+                      value={newStudentName}
+                      onChange={(e) => setNewStudentName(e.target.value)}
+                      className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl glass-input uppercase"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">No. MyKad / ID Pelajar</label>
+                    <input
+                      type="text"
+                      placeholder="CONTOH: 080101-10-1234"
+                      value={newStudentIc}
+                      onChange={(e) => setNewStudentIc(e.target.value)}
+                      className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl glass-input"
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingStudent(false)}
+                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold transition"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md transition"
+                    >
+                      Simpan Pelajar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+
+    function ReportModule({ students, topics, subject, className, logoUrl, selectedStudentId, setSelectedStudentId, comments, setComments }) {
+      const radarRef = React.useRef(null);
+      const radarInstanceRef = React.useRef(null);
+
+      const student = students.find(s => s.id === selectedStudentId) || students[0];
+
+      const { avgScore, overallTP } = React.useMemo(() => {
+        if (!student) return { avgScore: 0, overallTP: 0 };
+        return calculateStudentStats(student, topics);
+      }, [student, topics]);
+
+      const overallBadge = getTPBadge(overallTP);
+
+      // Current teacher comment for this student
+      const currentComment = React.useMemo(() => {
+        if (!student) return '';
+        if (comments[student.id] !== undefined) {
+          return comments[student.id];
+        }
+        return getDefaultComment(overallTP, student.name);
+      }, [student, comments, overallTP]);
+
+      const handleCommentChange = (e) => {
+        if (!student) return;
+        const val = e.target.value;
+        setComments(prev => ({
+          ...prev,
+          [student.id]: val
+        }));
+      };
+
+      // Render Radar Chart for DSKP topic performance
+      React.useEffect(() => {
+        if (!student || !radarRef.current) return;
+        const ctx = radarRef.current.getContext('2d');
+
+        const labels = topics.map(t => t.code);
+        const dataScores = topics.map(t => {
+          const sc = student.scores ? student.scores[t.id] : 0;
+          return sc !== undefined && sc !== '' ? Number(sc) : 0;
+        });
+
+        if (radarInstanceRef.current) {
+          radarInstanceRef.current.destroy();
+        }
+
+        radarInstanceRef.current = new Chart(ctx, {
+          type: 'radar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Markah Topik (%)',
+              data: dataScores,
+              backgroundColor: 'rgba(99, 102, 241, 0.25)',
+              borderColor: '#6366f1',
+              pointBackgroundColor: '#4f46e5',
+              pointBorderColor: '#ffffff',
+              pointHoverBackgroundColor: '#ffffff',
+              pointHoverBorderColor: '#4f46e5',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              r: {
+                min: 0,
+                max: 100,
+                ticks: { stepSize: 20, display: false },
+                pointLabels: {
+                  font: { size: 10, weight: 'bold', family: 'Inter' },
+                  color: '#475569'
+                },
+                grid: { color: 'rgba(203, 213, 225, 0.6)' }
+              }
+            },
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+
+        return () => {
+          if (radarInstanceRef.current) {
+            radarInstanceRef.current.destroy();
+          }
+        };
+      }, [student, topics]);
+
+      // Print Handler
+      const handlePrint = () => {
+        window.print();
+      };
+
+      if (!student) {
+        return (
+          <div className="glass-panel rounded-2xl p-8 text-center text-slate-500">
+            Sila tambah sekurang-kurangnya seorang pelajar dalam Rekod Transit.
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-6">
+          
+          {/* CONTROL BAR (SELECT STUDENT & PRINT BUTTON) */}
+          <div className="glass-panel rounded-2xl p-4 shadow-xl border border-white/80 flex flex-col sm:flex-row items-center justify-between gap-4 no-print">
+            <div className="flex items-center space-x-3 w-full sm:w-auto">
+              <label className="text-xs font-bold text-slate-700 whitespace-nowrap">Pilih Pelajar:</label>
+              <select
+                value={student.id}
+                onChange={(e) => setSelectedStudentId(e.target.value)}
+                className="w-full sm:w-80 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold glass-input text-slate-800"
+              >
+                {students.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.ic || 'Tiada MyKad'})</option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={handlePrint}
+              className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md flex items-center justify-center space-x-2 transition"
+            >
+              <i className="fa-solid fa-print"></i>
+              <span>Cetak / Eksport PDF</span>
+            </button>
+          </div>
+
+          {/* REPORT CARD CONTAINER (OPTIMIZED FOR PRINT & SCREEN) */}
+          <div className="glass-panel rounded-2xl p-6 sm:p-8 shadow-xl border border-white/80 bg-white/95 text-slate-800 print-container">
+            
+            {/* REPORT HEADER */}
+            <div className="flex items-center justify-between border-b-2 border-slate-800 pb-4 mb-6">
+              <div className="flex items-center space-x-4">
+                <img src={logoUrl} alt="Logo Sekolah" className="w-16 h-16 object-contain" />
+                <div>
+                  <h2 className="text-lg font-black uppercase tracking-wide text-slate-900">Laporan Pentaksiran Bilik Darjah (PBD)</h2>
+                  <p className="text-xs font-bold text-slate-600 uppercase">Penyata Prestasi & Transit DSKP</p>
+                </div>
+              </div>
+              <div className="text-right text-xs text-slate-600 font-semibold">
+                <div>Tarikh Cetakan: {new Date().toLocaleDateString('ms-MY')}</div>
+                <div className="text-indigo-700 font-bold">{subject} - {className}</div>
+              </div>
+            </div>
+
+            {/* MAKLUMAT PELAJAR & TP KESELURUHAN */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 mb-6 page-break">
+              <div className="md:col-span-2 space-y-1">
+                <div className="text-xs text-slate-500 font-semibold">Nama Pelajar:</div>
+                <div className="text-base font-extrabold text-slate-900 uppercase">{student.name}</div>
+                <div className="text-xs text-slate-600">No. MyKad / ID: <strong>{student.ic || '-'}</strong></div>
+              </div>
+              <div className="flex items-center justify-start md:justify-end border-t md:border-t-0 md:border-l border-slate-200 pt-2 md:pt-0 md:pl-4">
+                <div className="text-left md:text-right">
+                  <div className="text-xs text-slate-500 font-semibold">Tahap Penguasaan Keseluruhan</div>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className={`px-3 py-1 rounded-lg text-base font-black ${overallBadge.bg} ${overallBadge.text}`}>
+                      {overallBadge.label}
+                    </span>
+                    <span className="text-xs font-bold text-slate-700">({overallBadge.desc})</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">Purata Markah: <strong>{avgScore}%</strong></div>
+                </div>
+              </div>
+            </div>
+
+            {/* GRID: JADUAL MARKAH TOPIK & RADAR CHART */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6 page-break">
+              
+              {/* JADUAL TOPIK */}
+              <div className="lg:col-span-7">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2 flex items-center space-x-1">
+                  <i className="fa-solid fa-list-check text-indigo-600"></i>
+                  <span>Butiran Tahap Penguasaan Mengikut Topik DSKP</span>
+                </h3>
+                <div className="overflow-hidden rounded-xl border border-slate-200">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                        <th className="p-2 w-16">Kod</th>
+                        <th className="p-2">Nama Topik DSKP</th>
+                        <th className="p-2 w-16 text-center">Markah</th>
+                        <th className="p-2 w-16 text-center">TP</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {topics.map((t) => {
+                        const score = student.scores ? student.scores[t.id] : null;
+                        const tp = getTP(score);
+                        const badge = getTPBadge(tp);
+                        return (
+                          <tr key={t.id} className="hover:bg-slate-50">
+                            <td className="p-2 font-bold text-indigo-700">{t.code}</td>
+                            <td className="p-2 font-medium text-slate-800">{t.name}</td>
+                            <td className="p-2 text-center font-bold text-slate-700">
+                              {score !== undefined && score !== null && score !== '' ? `${score}%` : '-'}
+                            </td>
+                            <td className="p-2 text-center">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${badge.bg} ${badge.text}`}>
+                                {badge.label}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* RADAR CHART */}
+              <div className="lg:col-span-5 flex flex-col justify-center items-center p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2 text-center">
+                  Graf Perkembangan Profil Topik
+                </h3>
+                <div className="w-full h-64 relative">
+                  <canvas ref={radarRef}></canvas>
+                </div>
+              </div>
+
+            </div>
+
+            {/* ULASAN GURU & TINDAKAN SUSULAN */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 mb-8 page-break">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center space-x-1">
+                <i className="fa-solid fa-comment-dots text-indigo-600"></i>
+                <span>Ulasan Guru & Tindakan Susulan</span>
+              </label>
+              <textarea
+                rows="3"
+                value={currentComment}
+                onChange={handleCommentChange}
+                placeholder="Taip ulasan guru di sini..."
+                className="w-full p-3 text-xs sm:text-sm rounded-lg border border-slate-300 focus:ring-1 focus:ring-indigo-500 bg-white text-slate-800 leading-relaxed"
+              ></textarea>
+            </div>
+
+            {/* RUANGAN TANDATANGAN */}
+            <div className="grid grid-cols-2 gap-8 pt-8 border-t border-slate-300 page-break">
+              <div className="text-center space-y-12">
+                <div className="text-xs font-bold text-slate-700 uppercase">Tandatangan Guru Mata Pelajaran</div>
+                <div className="border-b border-slate-400 w-48 mx-auto"></div>
+                <div className="text-[11px] text-slate-500 font-medium">( &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; )</div>
+              </div>
+
+              <div className="text-center space-y-12">
+                <div className="text-xs font-bold text-slate-700 uppercase">Tandatangan Ibu Bapa / Penjaga</div>
+                <div className="border-b border-slate-400 w-48 mx-auto"></div>
+                <div className="text-[11px] text-slate-500 font-medium">( &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; )</div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      );
+    }
+
+
+    function SettingsModule({
+      subject, setSubject,
+      className, setClassName,
+      logoUrl, setLogoUrl,
+      topics, setTopics,
+      students, setStudents,
+      comments, setComments,
+      showMessage
+    }) {
+      const [newTopicCode, setNewTopicCode] = React.useState('');
+      const [newTopicName, setNewTopicName] = React.useState('');
+      const fileInputRef = React.useRef(null);
+      const jsonInputRef = React.useRef(null);
+
+      // Handle Logo Upload (Base64)
+      const handleLogoUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+          showMessage("Ralat", "Sila muat naik fail imej sahaja.");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setLogoUrl(event.target.result);
+          showMessage("Berjaya", "Logo sekolah berjaya dikemas kini.");
+        };
+        reader.readAsDataURL(file);
+      };
+
+      // Reset Logo to Default
+      const handleResetLogo = () => {
+        setLogoUrl(DEFAULT_LOGO_SVG);
+        showMessage("Info", "Logo telah dikembalikan ke logo asal.");
+      };
+
+      // Add DSKP Topic
+      const handleAddTopic = (e) => {
+        e.preventDefault();
+        if (!newTopicCode.trim() || !newTopicName.trim()) {
+          showMessage("Ralat", "Sila isi kod dan nama topik DSKP.");
+          return;
+        }
+        const newTopic = {
+          id: 't_' + Date.now(),
+          code: newTopicCode.trim(),
+          name: newTopicName.trim()
+        };
+        setTopics(prev => [...prev, newTopic]);
+        setNewTopicCode('');
+        setNewTopicName('');
+      };
+
+      // Delete DSKP Topic
+      const handleDeleteTopic = (topicId) => {
+        if (topics.length <= 1) {
+          showMessage("Amaran", "Sistem memerlukan sekurang-kurangnya SATU topik DSKP.");
+          return;
+        }
+        if (confirm("Adakah anda pasti untuk memadam topik DSKP ini? Markah pelajar bagi topik ini juga akan dipadam.")) {
+          setTopics(prev => prev.filter(t => t.id !== topicId));
+        }
+      };
+
+      // Backup JSON Export
+      const handleExportJSON = () => {
+        const data = {
+          subject,
+          className,
+          logoUrl,
+          topics,
+          students,
+          comments,
+          exportedAt: new Date().toISOString()
+        };
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup_pbd_${subject}_${className}_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      // Import JSON Backup
+      const handleImportJSON = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const imported = JSON.parse(event.target.result);
+            if (imported.subject) setSubject(imported.subject);
+            if (imported.className) setClassName(imported.className);
+            if (imported.logoUrl) setLogoUrl(imported.logoUrl);
+            if (Array.isArray(imported.topics)) setTopics(imported.topics);
+            if (Array.isArray(imported.students)) setStudents(imported.students);
+            if (imported.comments) setComments(imported.comments);
+
+            showMessage("Berjaya", "Data pangkalan data PBD berjaya dimuat naik dan dipulihkan!");
+          } catch (err) {
+            showMessage("Ralat", "Fail JSON tidak sah atau rosak.");
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      // Reset to Default Sample Data
+      const handleResetAllData = () => {
+        if (confirm("Adakah anda pasti untuk menetapkan semula (reset) SEMUA DATA ke keadaan asal? Segala perubahan akan dipadam!")) {
+          setSubject(DEFAULT_SUBJECT);
+          setClassName(DEFAULT_CLASS);
+          setLogoUrl(DEFAULT_LOGO_SVG);
+          setTopics(DEFAULT_TOPICS);
+          setStudents(DEFAULT_STUDENTS);
+          setComments({});
+          showMessage("Info", "Data sistem telah ditetapkan semula ke keadaan awal.");
+        }
+      };
+
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* KIRI: TETAPAN AM & LOGO */}
+          <div className="space-y-6">
+            
+            {/* TUKAR SUBJEK & KELAS */}
+            <div className="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl border border-white/80">
+              <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center space-x-2">
+                <i className="fa-solid fa-sliders text-indigo-600"></i>
+                <span>Tetapan Subjek & Kelas</span>
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Subjek / Mata Pelajaran</label>
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value.toUpperCase())}
+                    className="w-full px-3 py-2 text-xs sm:text-sm font-bold rounded-xl glass-input uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Tingkatan / Kelas</label>
+                  <input
+                    type="text"
+                    value={className}
+                    onChange={(e) => setClassName(e.target.value)}
+                    className="w-full px-3 py-2 text-xs sm:text-sm font-bold rounded-xl glass-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* MUAT NAIK LOGO */}
+            <div className="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl border border-white/80">
+              <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center space-x-2">
+                <i className="fa-solid fa-image text-indigo-600"></i>
+                <span>Muat Naik Logo Sekolah</span>
+              </h3>
+              <div className="flex items-center space-x-4">
+                <div className="w-20 h-20 rounded-2xl p-2 bg-white/80 border border-slate-200 shadow-inner flex items-center justify-center overflow-hidden">
+                  <img src={logoUrl} alt="Logo Preview" className="w-full h-full object-contain" />
+                </div>
+                <div className="space-y-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current.click()}
+                    className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow transition flex items-center space-x-1.5"
+                  >
+                    <i className="fa-solid fa-upload"></i>
+                    <span>Pilih Imej Logo (Base64)</span>
+                  </button>
+                  <button
+                    onClick={handleResetLogo}
+                    className="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition block"
+                  >
+                    Reset Logo Asal
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* BACKUP & RESTORE DATA */}
+            <div className="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl border border-white/80">
+              <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center space-x-2">
+                <i className="fa-solid fa-database text-indigo-600"></i>
+                <span>Pangkalan Data & Backup JSON</span>
+              </h3>
+              <p className="text-xs text-slate-600 mb-4">
+                Segala data tersimpan secara automatik dalam LocalStorage pelayar ini. Anda boleh mengeksport fail simpanan untuk tujuan sandaran.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleExportJSON}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow flex items-center space-x-2 transition"
+                >
+                  <i className="fa-solid fa-download"></i>
+                  <span>Eksport Data (JSON)</span>
+                </button>
+
+                <input
+                  type="file"
+                  ref={jsonInputRef}
+                  accept=".json"
+                  onChange={handleImportJSON}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => jsonInputRef.current.click()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow flex items-center space-x-2 transition"
+                >
+                  <i className="fa-solid fa-file-import"></i>
+                  <span>Import Data (JSON)</span>
+                </button>
+
+                <button
+                  onClick={handleResetAllData}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow flex items-center space-x-2 transition"
+                >
+                  <i className="fa-solid fa-rotate-left"></i>
+                  <span>Reset Semua Data</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          {/* KANAN: PENGURUSAN TOPIK DSKP */}
+          <div className="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl border border-white/80 flex flex-col h-full">
+            <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center space-x-2">
+              <i className="fa-solid fa-book-open text-indigo-600"></i>
+              <span>Pengurusan Topik DSKP</span>
+            </h3>
+
+            {/* FORM TAMBAH TOPIK */}
+            <form onSubmit={handleAddTopic} className="p-3 bg-white/60 rounded-xl border border-slate-200/80 mb-4 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Kod (cth: Bab 1)</label>
+                  <input
+                    type="text"
+                    placeholder="Bab 13"
+                    value={newTopicCode}
+                    onChange={(e) => setNewTopicCode(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs rounded-lg glass-input"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Nama Topik DSKP</label>
+                  <input
+                    type="text"
+                    placeholder="Tajuk modul DSKP..."
+                    value={newTopicName}
+                    onChange={(e) => setNewTopicName(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs rounded-lg glass-input"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow transition"
+              >
+                + Tambah Topik DSKP
+              </button>
+            </form>
+
+            {/* SENARAI TOPIK */}
+            <div className="flex-1 overflow-y-auto max-h-[420px] space-y-2 pr-1">
+              {topics.map((t, i) => (
+                <div key={t.id} className="glass-card rounded-xl p-3 flex items-center justify-between border border-white/80 hover:shadow-sm">
+                  <div className="flex items-center space-x-3">
+                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-extrabold flex items-center justify-center shrink-0">
+                      {i + 1}
+                    </span>
+                    <div>
+                      <span className="text-xs font-bold text-indigo-700 mr-2">{t.code}:</span>
+                      <span className="text-xs font-medium text-slate-800">{t.name}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteTopic(t.id)}
+                    className="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 transition"
+                    title="Padam Topik"
+                  >
+                    <i className="fa-solid fa-trash-can text-xs"></i>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      );
+    }
+
+    const rootElement = document.getElementById('root');
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+
+  </script>
+</body>
+</html>
